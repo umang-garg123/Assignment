@@ -1,0 +1,97 @@
+#part 1.txt
+
+import requests                  #import request library
+import csv                       #import csv module
+from bs4 import BeautifulSoup    #import BeautifulSoup library
+# Create a CSV file and write header row
+csv_filename = 'product_data.csv'
+csv_file = open(csv_filename, 'w', newline='', encoding='utf-8')
+csv_writer = csv.writer(csv_file)
+csv_writer.writerow(['Name', 'Price', 'Rating', 'Review', 'URL'])
+HEADERS = ({'User-Agent':'', 'Accept-Language': 'en-US, en;q=0.5'})
+for page in range(1, 21):        #Need to scrape atleast 20 pages of product listing pages
+    # Send a GET request to the URL
+    url = f'https://www.amazon.in/s?k=bags&crid=2M096C61O4MLT&qid=1653308124&sprefix=ba%2Caps%2C283&ref=sr_pg_{page}'
+    r= requests.get(url,headers=HEADERS)
+    #print(r)
+    #Create a BeautifulSoup object with the response content
+    soup = BeautifulSoup(r.content, 'html.parser')
+    #print(soup)
+    product_name = soup.find_all('span', class_='a-size-medium a-color-base a-text-normal') #Items to scrape-product Name
+    product_prices = soup.find_all('span', class_='a-offscreen')                            #Items to scrape-Product Price
+    product_ratings = soup.find_all('span', class_='a-icon-alt')                            #Items to scrape-Product Ratings
+    product_reviews = soup.find_all('span', class_='a-size-base s-underline-text')          #Items to scrape-Product Reviews
+    product_urls = soup.find_all('a', class_='a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal') #Items to scrape-Product URL
+
+    # Extract and write the data to the CSV file
+    for name, price, rating, review, url in zip(product_name, product_prices, product_ratings, product_reviews, product_urls):
+        csv_writer.writerow([name.text, price.text, rating.text, review.text, 'https://www.amazon.in' + url['href']])
+#Close the CSV file
+csv_file.close()
+#print("Data has been exported to", csv_filename)
+
+
+
+
+
+#part 2.txt
+
+import requests                #import request library
+from bs4 import BeautifulSoup  #import BeautifulSoup library
+import csv                       #import csv module
+import re                      #import re module
+counter=0
+#Create a CSV file and write header row
+csv_filename = 'product_data2.csv'
+csv_file = open(csv_filename, 'w', newline='', encoding='utf-8')
+csv_writer = csv.writer(csv_file)
+csv_writer.writerow(['Description','ASIN','Manufacturer','Products description'])
+HEADERS = ({'User-Agent':'', 'Accept-Language': 'en-US, en;q=0.5'})
+for page in range(1,11):#Need to hit around 200 product URL’s
+        #Send a GET request to the URL
+        url = f'https://www.amazon.in/s?k=bags&crid=2M096C61O4MLT&qid=1653308124&sprefix=ba%2Caps%2C283&ref=sr_pg_{page}'
+        r= requests.get(url,headers=HEADERS)
+        #print(r)
+        #Create a BeautifulSoup object with the response content
+        soup = BeautifulSoup(r.content, 'html.parser')
+        #print(soup)
+        product_urls = soup.find_all('a', class_='a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal')#Items to scrape-product URL
+        # Extract and write the data to the CSV file
+        for url in product_urls:
+                product_url = 'https://www.amazon.in' + url['href'] #With the Product URL received in the above case, hit each URL
+                product_response = requests.get(product_url,headers=HEADERS)
+                product_soup = BeautifulSoup(product_response.content, 'html.parser')
+                description = product_soup.find('ul', class_='a-unordered-list a-vertical a-spacing-mini').text.strip() #add Description
+                asin_match = re.search(r'/dp/(\w+)/', url['href']) #add asin
+                asin = asin_match.group(1) if asin_match else None
+                manufacturer = product_soup.find('div', id='bylineInfo').text.strip() if product_soup.find('div', id='bylineInfo') else None #add Manufacturer
+                Productsdescription = product_soup.find('div', class_='a-section a-spacing-small').text # add Product Description
+                csv_writer.writerow([description,asin,manufacturer,Productsdescription]) 
+                counter+=1
+                # Check if around 200 product URLs are scraped
+                if(counter>=200): 
+                        break
+
+        
+# Close the CSV file
+csv_file.close()
+
+#print("Data has been exported to", csv_filename)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
